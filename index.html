@@ -182,6 +182,10 @@
       <h2>Bayaran</h2>
       <p>Imbas untuk membuat pembayaran.</p>
       <img src="https://i.imgur.com/awwMQhK.jpeg" alt="QR Code Bayaran">
+
+      <!-- Fungsi Attachment Bukti Pembayaran -->
+      <label for="paymentProof">Muat Naik Bukti Pembayaran (Gambar atau PDF):</label>
+      <input type="file" id="paymentProof" accept="image/png, image/jpeg, application/pdf">
       <button type="button" class="button" onclick="sendToWhatsApp()">Hantar ke WhatsApp</button>
     </div>
   </div>
@@ -191,7 +195,26 @@
   </footer>
 
   <script>
+    // Fungsi 2: Validasi Saiz Fail (Maksimum 5MB)
+    const maxFileSize = 5 * 1024 * 1024; // 5MB
+
+    function validateFileSize(file) {
+      if (file.size > maxFileSize) {
+        alert("Saiz fail terlalu besar. Sila muat naik fail kurang daripada 5MB.");
+        return false;
+      }
+      return true;
+    }
+
+    // Fungsi 1: Papar Pengesahan Pesanan
     function showConfirmation() {
+      const imageFile = document.getElementById("imageUpload").files[0];
+      const refFile = document.getElementById("refImageUpload").files[0];
+
+      // Validasi saiz fail
+      if (!validateFileSize(imageFile)) return;
+      if (refFile && !validateFileSize(refFile)) return;
+
       document.getElementById("confirmName").textContent = document.querySelector('input[name="name"]').value;
       document.getElementById("confirmPhone").textContent = document.querySelector('input[name="phone"]').value;
       document.getElementById("confirmOrderType").textContent = document.querySelector('input[name="order_type"]:checked')?.value;
@@ -201,6 +224,7 @@
       document.getElementById("orderForm").classList.add("hidden");
     }
 
+    // Fungsi 2: Muat Naik Gambar ke Imgur
     async function uploadImages() {
       const clientId = "6d93506cc27e293"; // Your Imgur Client ID
       const imageFile = document.getElementById("imageUpload").files[0];
@@ -230,12 +254,49 @@
       return result.data.link;
     }
 
-    function sendToWhatsApp() {
+    // Fungsi 3: Hantar Semua Maklumat ke WhatsApp
+    async function sendToWhatsApp() {
       const imageUrl = localStorage.getItem("imageUrl");
       const refImageUrl = localStorage.getItem("refImageUrl");
+      const paymentProofFile = document.getElementById("paymentProof").files[0];
 
-      const message = `Pesanan Macho/Cute:\nNama: ${document.getElementById("confirmName").textContent}\nGambar: ${imageUrl}\nRujukan: ${refImageUrl}`;
+      if (!paymentProofFile) {
+        alert("Sila muat naik bukti pembayaran.");
+        return;
+      }
+
+      // Muat naik bukti pembayaran ke Imgur (untuk gambar) atau Google Drive (untuk PDF)
+      let paymentProofUrl;
+      if (paymentProofFile.type.startsWith("image/")) {
+        paymentProofUrl = await uploadToImgur(paymentProofFile);
+      } else if (paymentProofFile.type === "application/pdf") {
+        paymentProofUrl = await uploadToGoogleDrive(paymentProofFile); // Fungsi ini perlu diimplementasikan
+      } else {
+        alert("Hanya gambar (JPEG, PNG) atau PDF sahaja dibenarkan.");
+        return;
+      }
+
+      // Gabungkan semua maklumat ke dalam satu mesej
+      const message = `Pesanan Macho/Cute:\nNama: ${document.getElementById("confirmName").textContent}\nNo. Telefon: ${document.getElementById("confirmPhone").textContent}\nJenis Pesanan: ${document.getElementById("confirmOrderType").textContent}\nNota: ${document.getElementById("confirmNotes").textContent}\nGambar Wajib: ${imageUrl}\nGambar Rujukan: ${refImageUrl}\nBukti Pembayaran: ${paymentProofUrl}`;
+
+      // Buka WhatsApp dengan mesej yang telah digabungkan
       window.open(`https://wa.me/60189800195?text=${encodeURIComponent(message)}`, "_blank");
+
+      // Notifikasi selepas hantar
+      setTimeout(() => {
+        alert("Pesanan telah dihantar ke WhatsApp. Terima kasih!");
+      }, 1000); // Beri sedikit masa sebelum papar notifikasi
+    }
+
+    // Fungsi 4: Ganti Nombor WhatsApp
+    const whatsappNumber = "60189800195"; // Anda boleh menukar nombor ini
+
+    // Fungsi untuk memuat naik PDF ke Google Drive (contoh sahaja, perlu diimplementasikan)
+    async function uploadToGoogleDrive(file) {
+      // Anda perlu menggunakan Google Drive API untuk implementasi sebenar
+      // Ini hanyalah contoh placeholder
+      alert("Fungsi memuat naik PDF ke Google Drive perlu diimplementasikan.");
+      return null;
     }
   </script>
 
